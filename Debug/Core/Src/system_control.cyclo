@@ -1,0 +1,13 @@
+../Core/Src/system_control.c:37:6:SYSTEM_Init	2
+../Core/Src/system_control.c:60:6:SYSTEM_Update	1
+../Core/Src/system_control.c:72:6:SYSTEM_TimerTick	1
+../Core/Src/system_control.c:81:9:SYSTEM_ShouldSendStatus	2
+../Core/Src/system_control.c:94:6:SYSTEM_ErrorBlink	1
+../Core/Src/system_control.c:115:6:SYSTEM_SetLED	2
+../Core/Src/system_control.c:127:6:SYSTEM_SetChargeMode	2
+../Core/Src/system_control.c:139:6:SYSTEM_SetPowerOutput	1
+../Core/Src/system_control.c:149:6:SYSTEM_SetRelayMode	5
+../Core/Src/system_control.c:177:13:UpdateLEDs	1
+../Core/Src/system_control.c:208:13:UpdateChargeMode	5
+../Core/Src/system_control.c:235:13:UpdatePowerOutput	2
+../Core/Src/system_control.c:255:6:SYSTEM_SetEnableSignal	5

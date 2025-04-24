@@ -18,11 +18,17 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
+#include "tim.h"
 #include "usb_device.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "system_control.h"
+#include "battery_management.h"
+#include "fault_handling.h"
+#include "usb_com.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,7 +47,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc2;
 
 /* USER CODE BEGIN PV */
 
@@ -49,15 +54,21 @@ ADC_HandleTypeDef hadc2;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_ADC2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+SystemState_t systemState = {
+  .batteryLevel = 0,
+  .state = STATE_STANDBY,
+  .fault = FAULT_NONE,
+  .voltages = {0, 0, 0, 0}
+};
 
+uint8_t receiveBuffer[64];
+uint8_t commandReady = 0;
 /* USER CODE END 0 */
 
 /**
@@ -91,6 +102,7 @@ int main(void)
   MX_GPIO_Init();
   MX_ADC2_Init();
   MX_USB_DEVICE_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -102,6 +114,25 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	/* Process incoming commands */
+	if (commandReady) {
+	  ProcessCommand();
+	  commandReady = 0;
+	}
+
+	/* Update system state */
+	SYSTEM_Update();
+
+	/* Check for faults */
+	FAULT_Check();
+
+	/* Update battery state */
+	BATTERY_Update();
+
+	/* Send periodic status if needed */
+	if (SYSTEM_ShouldSendStatus()) {
+	  USB_SendStatus(&systemState);
+	}
   }
   /* USER CODE END 3 */
 }
@@ -153,113 +184,121 @@ void SystemClock_Config(void)
   }
 }
 
-/**
-  * @brief ADC2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC2_Init(void)
-{
-
-  /* USER CODE BEGIN ADC2_Init 0 */
-
-  /* USER CODE END ADC2_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC2_Init 1 */
-
-  /* USER CODE END ADC2_Init 1 */
-
-  /** Common config
-  */
-  hadc2.Instance = ADC2;
-  hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc2.Init.ContinuousConvMode = DISABLE;
-  hadc2.Init.DiscontinuousConvMode = DISABLE;
-  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc2.Init.NbrOfConversion = 1;
-  if (HAL_ADC_Init(&hadc2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_1;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC2_Init 2 */
-
-  /* USER CODE END ADC2_Init 2 */
-
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, EN_BLOCK_200A_Pin|WARNING_LOW_VOLTAGE_Pin|CTRL_LED_100_Pin|CTRL_LED_50_Pin
-                          |CTRL_LED_0_Pin|CTRL_LED_CHARGING_Pin|CTRL_LED_CHECK_CHARGER_Pin|LATCH_IN1_Pin
-                          |LATCH_IN2_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, EN_FAST_CHARGE_Pin|EN_CHARGE_Pin|EN_BLOCK_100A_Pin|CTRL_SPK_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pins : FLT_FAST_CHARGE_Pin FLT_CHARGE_Pin FLT_BLOCK_100A_Pin */
-  GPIO_InitStruct.Pin = FLT_FAST_CHARGE_Pin|FLT_CHARGE_Pin|FLT_BLOCK_100A_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : EN_BLOCK_200A_Pin WARNING_LOW_VOLTAGE_Pin CTRL_LED_100_Pin CTRL_LED_50_Pin
-                           CTRL_LED_0_Pin CTRL_LED_CHARGING_Pin CTRL_LED_CHECK_CHARGER_Pin LATCH_IN1_Pin
-                           LATCH_IN2_Pin */
-  GPIO_InitStruct.Pin = EN_BLOCK_200A_Pin|WARNING_LOW_VOLTAGE_Pin|CTRL_LED_100_Pin|CTRL_LED_50_Pin
-                          |CTRL_LED_0_Pin|CTRL_LED_CHARGING_Pin|CTRL_LED_CHECK_CHARGER_Pin|LATCH_IN1_Pin
-                          |LATCH_IN2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : FLT_BLOCK_200A_Pin LATCH_FB1_Pin LATCH_FB2_Pin */
-  GPIO_InitStruct.Pin = FLT_BLOCK_200A_Pin|LATCH_FB1_Pin|LATCH_FB2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : EN_FAST_CHARGE_Pin EN_CHARGE_Pin EN_BLOCK_100A_Pin CTRL_SPK_Pin */
-  GPIO_InitStruct.Pin = EN_FAST_CHARGE_Pin|EN_CHARGE_Pin|EN_BLOCK_100A_Pin|CTRL_SPK_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
-}
-
 /* USER CODE BEGIN 4 */
+// Add this to main.c in the ProcessCommand function
 
+/**
+  * @brief  Process received command from USB
+  * @note   Parse and execute commands from the PC application
+  * @retval None
+  */
+void ProcessCommand(void)
+{
+  char cmd = receiveBuffer[0];
+
+  switch(cmd) {
+    case 'S': // Status request
+      // Update all values and send status
+      ADC_ReadAll(systemState.voltages);
+      systemState.batteryLevel = BATTERY_CalculateLevel(systemState.voltages[BANK_A]);
+      USB_SendStatus(&systemState);
+      break;
+
+    case 'L': // LED control (L0-5)(0-1)
+      if (receiveBuffer[1] >= '0' && receiveBuffer[1] <= '5' &&
+          receiveBuffer[2] >= '0' && receiveBuffer[2] <= '1') {
+        uint8_t ledIndex = receiveBuffer[1] - '0';
+        uint8_t ledState = receiveBuffer[2] - '0';
+        SYSTEM_SetLED(ledIndex, ledState);
+      }
+      break;
+
+    case 'C': // Charge control (C0-2)
+      if (receiveBuffer[1] >= '0' && receiveBuffer[1] <= '2') {
+        uint8_t chargeMode = receiveBuffer[1] - '0';
+        SYSTEM_SetChargeMode(chargeMode);
+      }
+      break;
+
+    case 'P': // Power output control (P0-1)
+      if (receiveBuffer[1] >= '0' && receiveBuffer[1] <= '1') {
+        uint8_t powerState = receiveBuffer[1] - '0';
+        SYSTEM_SetPowerOutput(powerState);
+      }
+      break;
+
+    case 'R': // Relay control (R0-2)
+      if (receiveBuffer[1] >= '0' && receiveBuffer[1] <= '2') {
+        uint8_t relayMode = receiveBuffer[1] - '0';
+        SYSTEM_SetRelayMode(relayMode);
+      }
+      break;
+
+    case 'E': // Individual enable signal control (E0-3)(0-1)
+      if (receiveBuffer[1] >= '0' && receiveBuffer[1] <= '3' &&
+          receiveBuffer[2] >= '0' && receiveBuffer[2] <= '1') {
+        uint8_t signalIndex = receiveBuffer[1] - '0';
+        uint8_t signalState = receiveBuffer[2] - '0';
+        SYSTEM_SetEnableSignal(signalIndex, signalState);
+      }
+      break;
+
+    default:
+      break;
+  }
+}
+
+/**
+  * @brief  USB CDC Received data callback
+  * @note   Called by USB CDC when new data is received
+  * @param  buffer: Pointer to received data
+  * @param  length: Number of received bytes
+  * @retval None
+  */
+void USB_DataReceived(uint8_t* buffer, uint32_t length)
+{
+  if (length > 0 && length < sizeof(receiveBuffer)) {
+    memcpy(receiveBuffer, buffer, length);
+    receiveBuffer[length] = 0; // Null-terminate
+    commandReady = 1;
+  }
+}
+
+/**
+  * @brief  Timer elapsed callback
+  * @note   This function is called when the timer period elapses
+  * @param  htim: Timer handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM2) {
+    // 1ms timer for system timing
+    SYSTEM_TimerTick();
+  }
+}
+
+/**
+  * @brief  GPIO EXTI callback
+  * @note   Called when configured GPIO interrupts occur
+  * @param  GPIO_Pin: Specifies the pin that triggered the interrupt
+  * @retval None
+  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == FLT_BLOCK_100A_Pin) {
+    FAULT_SetFaultFlag(FAULT_BLOCK_100A);
+  }
+  else if (GPIO_Pin == FLT_BLOCK_200A_Pin) {
+    FAULT_SetFaultFlag(FAULT_BLOCK_200A);
+  }
+  else if (GPIO_Pin == FLT_CHARGE_Pin) {
+    FAULT_SetFaultFlag(FAULT_CHARGE);
+  }
+  else if (GPIO_Pin == FLT_FAST_CHARGE_Pin) {
+    FAULT_SetFaultFlag(FAULT_FAST_CHARGE);
+  }
+}
 /* USER CODE END 4 */
 
 /**

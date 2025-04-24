@@ -1,0 +1,5 @@
+../Core/Src/fault_handling.c:27:6:FAULT_Init	2
+../Core/Src/fault_handling.c:42:6:FAULT_Check	9
+../Core/Src/fault_handling.c:94:6:FAULT_SetFaultFlag	3
+../Core/Src/fault_handling.c:112:6:FAULT_ClearFaultFlag	1
+../Core/Src/fault_handling.c:121:9:FAULT_GetState	1

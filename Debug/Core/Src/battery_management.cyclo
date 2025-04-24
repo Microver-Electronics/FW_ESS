@@ -1,0 +1,4 @@
+../Core/Src/battery_management.c:25:6:BATTERY_Init	1
+../Core/Src/battery_management.c:38:6:BATTERY_Update	1
+../Core/Src/battery_management.c:50:9:BATTERY_CalculateLevel	5
+../Core/Src/battery_management.c:87:9:BATTERY_IsLow	2

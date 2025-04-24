@@ -105,7 +105,61 @@ void Error_Handler(void);
 #define LATCH_FB2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+#define ADC_RESOLUTION 4095.0f
+#define ADC_REFERENCE 3.3f
+#define VOLTAGE_DIVIDER_RATIO 5.0f
 
+typedef enum {
+  STATE_STANDBY = 0,
+  STATE_CHARGING,
+  STATE_DISCHARGING,
+  STATE_ERROR
+} SystemStateEnum;
+
+typedef enum {
+  FAULT_NONE = 0x00,
+  FAULT_BLOCK_200A = 0x01,
+  FAULT_BLOCK_100A = 0x02,
+  FAULT_CHARGE = 0x04,
+  FAULT_FAST_CHARGE = 0x08
+} FaultStateEnum;
+
+typedef enum {
+  BANK_A = 0,
+  BANK_B,
+  CHARGE,
+  LOAD,
+  VOLTAGE_COUNT
+} VoltageEnum;
+
+typedef enum {
+  CHARGE_OFF = 0,
+  CHARGE_NORMAL,
+  CHARGE_FAST
+} ChargeModeEnum;
+
+typedef enum {
+  RELAY_OFF = 0,
+  RELAY_SET,
+  RELAY_RESET
+} RelayModeEnum;
+
+typedef enum {
+  LED_0_PERCENT = 0,
+  LED_50_PERCENT,
+  LED_100_PERCENT,
+  LED_CHARGING,
+  LED_CHECK_CHARGER,
+  LED_WARNING,
+  LED_COUNT
+} LEDEnum;
+
+typedef struct {
+  uint8_t batteryLevel;
+  SystemStateEnum state;
+  uint8_t fault;
+  float voltages[VOLTAGE_COUNT];
+} SystemState_t;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -1,0 +1,6 @@
+../Core/Src/adc.c:30:6:MX_ADC2_Init	24	static
+../Core/Src/adc.c:72:6:HAL_ADC_MspInit	40	static
+../Core/Src/adc.c:101:6:HAL_ADC_MspDeInit	16	static
+../Core/Src/adc.c:132:10:ADC_ReadChannel	32	static
+../Core/Src/adc.c:163:7:ADC_ConvertToVoltage	24	static
+../Core/Src/adc.c:178:6:ADC_ReadAll	24	static

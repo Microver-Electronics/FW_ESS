@@ -1,0 +1,4 @@
+../Core/Src/usb_com.c:38:6:USB_SendStatus	72	static
+../Core/Src/usb_com.c:61:6:USB_SendError	24	static
+../Core/Src/usb_com.c:78:6:USB_HandleRxData	16	static
+../Core/Src/usb_com.c:90:9:CDC_Receive_FS	16	static
