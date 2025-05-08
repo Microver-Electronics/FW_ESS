@@ -20,7 +20,7 @@
 #include "main.h"
 #include "adc.h"
 #include "tim.h"
-#include "usb_device.h"
+//#include "usb_device.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -28,7 +28,7 @@
 #include "system_control.h"
 #include "battery_management.h"
 #include "fault_handling.h"
-#include "usb_com.h"
+//#include "usb_com.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -101,7 +101,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ADC2_Init();
-  MX_USB_DEVICE_Init();
+  //MX_USB_DEVICE_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
@@ -115,10 +115,14 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	/* Process incoming commands */
-	if (commandReady) {
+
+/*/	if (commandReady) {
 	  ProcessCommand();
 	  commandReady = 0;
-	}
+	}*/
+
+  ADC_ReadAll(systemState.voltages); // Read ADC directly
+  systemState.batteryLevel = BATTERY_CalculateLevel(systemState.voltages[BANK_A]);
 
 	/* Update system state */
 	SYSTEM_Update();
@@ -130,13 +134,13 @@ int main(void)
 	BATTERY_Update();
 
 	/* Send periodic status if needed */
-	if (SYSTEM_ShouldSendStatus()) {
+	/*if (SYSTEM_ShouldSendStatus()) {
 	  USB_SendStatus(&systemState);
 	}
-  }
+  }*/
   /* USER CODE END 3 */
 }
-
+}
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -175,9 +179,9 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_USB;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
   PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
-  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
+  //PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -201,7 +205,7 @@ void ProcessCommand(void)
       // Update all values and send status
       ADC_ReadAll(systemState.voltages);
       systemState.batteryLevel = BATTERY_CalculateLevel(systemState.voltages[BANK_A]);
-      USB_SendStatus(&systemState);
+      //USB_SendStatus(&systemState);
       break;
 
     case 'L': // LED control (L0-5)(0-1)
@@ -255,14 +259,14 @@ void ProcessCommand(void)
   * @param  length: Number of received bytes
   * @retval None
   */
-void USB_DataReceived(uint8_t* buffer, uint32_t length)
+/*void USB_DataReceived(uint8_t* buffer, uint32_t length)
 {
   if (length > 0 && length < sizeof(receiveBuffer)) {
     memcpy(receiveBuffer, buffer, length);
     receiveBuffer[length] = 0; // Null-terminate
     commandReady = 1;
   }
-}
+}*/
 
 /**
   * @brief  Timer elapsed callback
