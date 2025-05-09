@@ -23,13 +23,14 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 static char txBuffer[128];
 
 /* System state string representations */
+/*
 static const char* stateStrings[] = {
   "STANDBY",
   "CHARGING",
   "DISCHARGING",
   "ERROR"
 };
-
+*/
 /**
   * @brief  Send system status over USB
   * @param  state: Pointer to system state structure
@@ -75,12 +76,13 @@ void USB_SendError(const char* errorMsg)
   * @param  length: Length of received data
   * @retval None
   */
+/*
 void USB_HandleRxData(uint8_t* buffer, uint32_t length)
 {
   // Call the main data received callback
   USB_DataReceived(buffer, length);
 }
-
+*/
 /**
   * @brief  CDC receive callback - called by USB CDC driver
   * @param  buffer: Pointer to received data

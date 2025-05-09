@@ -186,6 +186,7 @@ void SystemClock_Config(void) {
  * @note   Parse and execute commands from the PC application
  * @retval None
  */
+/*
 void ProcessCommand(void) {
 	char cmd = receiveBuffer[0];
 
@@ -241,6 +242,7 @@ void ProcessCommand(void) {
 		break;
 	}
 }
+*/
 
 /**
  * @brief  USB CDC Received data callback
